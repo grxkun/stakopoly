@@ -164,7 +164,7 @@
                     <div class="flex items-center space-x-2">
                         <button id="modal-analyze-button" class="flex items-center space-x-2 text-sm bg-purple-400/50 text-purple-900 px-3 py-1.5 rounded-lg border-2 border-stone-800 hover:bg-purple-400/80 disabled:bg-stone-300">
                             <span class="text-lg">🔮</span>
-                            <span class="font-bold">تحليل المجمع</span>
+                            <span class="font-bold">Analyze Pool</span>
                         </button>
                         <button id="modal-share-button" class="flex items-center space-x-2 text-sm bg-sky-400/50 text-sky-900 px-3 py-1.5 rounded-lg border-2 border-stone-800 hover:bg-sky-400/80 disabled:bg-stone-300 disabled:text-stone-500">
                             <span class="text-lg">🐦</span>
@@ -324,7 +324,7 @@
                   } else if (prompt.includes("Generate a short, exciting tweet")) {
                       resolve(`Staking my NFTs to earn tokens! 💎\n\nCome join the new pool on Monad Stake. Passive income for holders is the future!\n\n#Monad #NFTStaking #Crypto`);
                   } else if (prompt.includes("Analyze this staking pool")) {
-                      resolve("<strong>تحليل الذكاء الاصطناعي:</strong> This pool offers a high emission rate, suggesting strong potential rewards. However, the relatively short duration means you'll need to stake early to maximize gains. The NFT collection is moderately popular, which should ensure steady staking activity. Overall, it's a high-risk, high-reward opportunity for short-term holders.");
+                      resolve("<strong>AI Analysis:</strong> This pool offers a high emission rate, suggesting strong potential rewards. However, the relatively short duration means you'll need to stake early to maximize gains. The NFT collection is moderately popular, which should ensure steady staking activity. Overall, it's a high-risk, high-reward opportunity for short-term holders.");
                   } else {
                       resolve("I couldn't think of anything cool right now, sorry!");
                   }
