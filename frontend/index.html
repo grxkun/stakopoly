@@ -723,6 +723,7 @@
             const handleConnectWallet = async () => {
               setState({ isLoading: true });
               try {
+                console.log('Connecting wallet...');
                 if (!window.ethereum) {
                   alert('Please install MetaMask or another Web3 wallet!');
                   setState({ isLoading: false });
@@ -732,14 +733,19 @@
                 provider = new ethers.providers.Web3Provider(window.ethereum);
                 signer = provider.getSigner();
                 const address = await signer.getAddress();
+                console.log('Connected address:', address);
                 // Switch to Monad testnet
                 try {
+                  console.log('Switching to Monad testnet...');
                   await window.ethereum.request({
                     method: 'wallet_switchEthereumChain',
                     params: [{ chainId: '0x279f' }],
                   });
+                  console.log('Switched to Monad testnet');
                 } catch (switchError) {
+                  console.log('Switch error:', switchError);
                   if (switchError.code === 4902) {
+                    console.log('Adding Monad testnet...');
                     await window.ethereum.request({
                       method: 'wallet_addEthereumChain',
                       params: [{
@@ -750,14 +756,18 @@
                         blockExplorerUrls: ['https://testnet.monad.xyz'],
                       }],
                     });
+                    console.log('Added Monad testnet');
                   } else {
-                    throw switchError;
+                    console.log('Switch failed, continuing...');
                   }
                 }
                 factoryContract = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
+                console.log('Factory contract initialized');
                 setState({ userAddress: address, isLoading: false });
+                console.log('State updated, should render dashboard');
               } catch (error) {
                 console.error('Connection failed:', error);
+                alert('Connection failed: ' + error.message);
                 setState({ isLoading: false });
               }
             };
