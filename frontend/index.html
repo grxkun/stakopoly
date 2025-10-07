@@ -361,9 +361,11 @@
                         <div class="flex items-center space-x-2 sm:space-x-4">
                            ${state.isTwitterConnected ? `<div class="hidden sm:flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border-2 border-stone-800"><span class="text-lg">🐦</span><span class="font-bold text-sm">${state.twitterHandle}</span></div>` : ''}
                             <div class="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border-2 border-stone-800"><span class="text-lg">👛</span><span class="font-mono text-sm">${state.userAddress.slice(0, 4)}...${state.userAddress.slice(-4)}</span></div>
-                            <button id="disconnect-button" class="p-2 rounded-lg bg-white border-2 border-stone-800 hover:bg-red-200 text-stone-800 transition-colors text-2xl">🚪</button>
+                            <button id="switch-wallet-button" class="p-2 rounded-lg bg-white border-2 border-stone-800 hover:bg-blue-200 text-stone-800 transition-colors text-2xl" title="Switch Wallet">🔄</button>
+                            <button id="disconnect-button" class="p-2 rounded-lg bg-white border-2 border-stone-800 hover:bg-red-200 text-stone-800 transition-colors text-2xl" title="Disconnect Wallet">🚪</button>
                         </div>
                     `;
+                    document.getElementById('switch-wallet-button').addEventListener('click', handleSwitchWallet);
                     document.getElementById('disconnect-button').addEventListener('click', handleDisconnect);
                 } else {
                      headerConnectButtonContainer.innerHTML = `<button id="header-connect-button" class="bg-amber-300 font-bold px-5 py-3 rounded-lg border-4 border-stone-800 cartoon-shadow hover:-translate-y-1 transition-transform disabled:bg-stone-300">${state.isLoading ? "Connecting..." : "Connect Wallet"}</button>`;
@@ -404,13 +406,49 @@
                 return card;
             };
             
-            const renderLandingPage = () => {
-                featuredPoolsContainer.innerHTML = '';
-                MOCK_STAKING_POOLS.slice(0, 3).forEach(pool => {
-                    const card = createPoolCard(pool);
-                    card.querySelector('.interact-button').disabled = true; // Disable interaction on landing page
-                    featuredPoolsContainer.appendChild(card);
-                });
+            const renderLandingPage = async () => {
+                try {
+                    const poolAddresses = await readFactory.allPools();
+                    const pools = [];
+                    for (const addr of poolAddresses) {
+                        const poolContract = new ethers.Contract(addr, POOL_ABI, readProvider);
+                        const nftCollection = await poolContract.nftCollection();
+                        const rewardToken = await poolContract.rewardToken();
+                        const startTime = await poolContract.startTime();
+                        const endTime = await poolContract.endTime();
+                        const emissionRate = await poolContract.emissionRate();
+                        const totalStaked = await poolContract.totalStaked();
+                        pools.push({
+                            id: addr,
+                            owner: await poolContract.owner(),
+                            nftCollectionName: 'NFT Collection', // Placeholder
+                            nftCollectionImage: 'https://placehold.co/100x100/fde68a/4a2c0c?text=NFT',
+                            nftAddress: nftCollection,
+                            rewardToken: rewardToken,
+                            emissionRate: emissionRate,
+                            totalStaked: totalStaked,
+                            userStaked: [],
+                            userRewards: 0,
+                            startTime: new Date(startTime * 1000).toISOString(),
+                            endTime: new Date(endTime * 1000).toISOString(),
+                        });
+                    }
+                    featuredPoolsContainer.innerHTML = '';
+                    pools.forEach(pool => {
+                        const card = createPoolCard(pool);
+                        card.querySelector('.interact-button').disabled = true;
+                        featuredPoolsContainer.appendChild(card);
+                    });
+                } catch (error) {
+                    console.error('Error fetching pools:', error);
+                    // Fallback to demo
+                    featuredPoolsContainer.innerHTML = '';
+                    MOCK_STAKING_POOLS.slice(0, 3).forEach(pool => {
+                        const card = createPoolCard(pool);
+                        card.querySelector('.interact-button').disabled = true;
+                        featuredPoolsContainer.appendChild(card);
+                    });
+                }
                 renderScheduleTable(poolsScheduleContainer);
             };
 
@@ -718,7 +756,247 @@
                 "type": "function"
               }
             ];
+            const POOL_ABI = [
+              {
+                "inputs": [
+                  {
+                    "internalType": "address",
+                    "name": "_nftCollection",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "_rewardToken",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "_startTime",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "_endTime",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "_emissionRate",
+                    "type": "uint256"
+                  }
+                ],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+              },
+              {
+                "anonymous": false,
+                "inputs": [
+                  {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "user",
+                    "type": "address"
+                  },
+                  {
+                    "indexed": false,
+                    "internalType": "uint256[]",
+                    "name": "tokenIds",
+                    "type": "uint256[]"
+                  }
+                ],
+                "name": "Staked",
+                "type": "event"
+              },
+              {
+                "anonymous": false,
+                "inputs": [
+                  {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "user",
+                    "type": "address"
+                  },
+                  {
+                    "indexed": false,
+                    "internalType": "uint256[]",
+                    "name": "tokenIds",
+                    "type": "uint256[]"
+                  }
+                ],
+                "name": "Unstaked",
+                "type": "event"
+              },
+              {
+                "inputs": [],
+                "name": "claimRewards",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+              },
+              {
+                "inputs": [],
+                "name": "emissionRate",
+                "outputs": [
+                  {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                  }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+              },
+              {
+                "inputs": [],
+                "name": "endTime",
+                "outputs": [
+                  {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                  }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+              },
+              {
+                "inputs": [],
+                "name": "nftCollection",
+                "outputs": [
+                  {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                  }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+              },
+              {
+                "inputs": [],
+                "name": "owner",
+                "outputs": [
+                  {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                  }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+              },
+              {
+                "inputs": [],
+                "name": "rewardToken",
+                "outputs": [
+                  {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                  }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+              },
+              {
+                "inputs": [
+                  {
+                    "internalType": "uint256[]",
+                    "name": "_tokenIds",
+                    "type": "uint256[]"
+                  }
+                ],
+                "name": "stake",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+              },
+              {
+                "inputs": [],
+                "name": "startTime",
+                "outputs": [
+                  {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                  }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+              },
+              {
+                "inputs": [],
+                "name": "totalStaked",
+                "outputs": [
+                  {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                  }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+              },
+              {
+                "inputs": [
+                  {
+                    "internalType": "uint256[]",
+                    "name": "_tokenIds",
+                    "type": "uint256[]"
+                  }
+                ],
+                "name": "unstake",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+              },
+              {
+                "inputs": [
+                  {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                  }
+                ],
+                "name": "userRewards",
+                "outputs": [
+                  {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                  }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+              },
+              {
+                "inputs": [
+                  {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                  }
+                ],
+                "name": "userStakedTokens",
+                "outputs": [
+                  {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                  }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+              }
+            ];
             let provider, signer, factoryContract;
+            const readProvider = new ethers.providers.JsonRpcProvider("https://monad-testnet.drpc.org");
+            const readFactory = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, readProvider);
 
             const handleConnectWallet = async () => {
               setState({ isLoading: true });
@@ -773,6 +1051,57 @@
             };
             const handleConnectTwitter = () => { setState({ isLoading: true }); setTimeout(() => setState({ isTwitterConnected: true, twitterHandle: "@monad_staker", isLoading: false }), 1500); };
             const handleDisconnect = () => setState({ userAddress: null, isTwitterConnected: false, twitterHandle: null, activeTab: 'dashboard' });
+            const handleSwitchWallet = async () => {
+              setState({ isLoading: true });
+              try {
+                console.log('Switching wallet...');
+                if (!window.ethereum) {
+                  alert('Please install MetaMask or another Web3 wallet!');
+                  setState({ isLoading: false });
+                  return;
+                }
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                const address = await signer.getAddress();
+                console.log('Switched to address:', address);
+                // Ensure we're on Monad testnet
+                try {
+                  console.log('Ensuring Monad testnet...');
+                  await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x279f' }],
+                  });
+                  console.log('On Monad testnet');
+                } catch (switchError) {
+                  console.log('Switch error:', switchError);
+                  if (switchError.code === 4902) {
+                    console.log('Adding Monad testnet...');
+                    await window.ethereum.request({
+                      method: 'wallet_addEthereumChain',
+                      params: [{
+                        chainId: '0x279f',
+                        chainName: 'Monad Testnet',
+                        nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+                        rpcUrls: ['https://monad-testnet.drpc.org'],
+                        blockExplorerUrls: ['https://testnet.monad.xyz'],
+                      }],
+                    });
+                    console.log('Added Monad testnet');
+                  } else {
+                    console.log('Switch failed, continuing...');
+                  }
+                }
+                factoryContract = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
+                console.log('Factory contract updated');
+                setState({ userAddress: address, isLoading: false });
+                console.log('State updated with new address');
+              } catch (error) {
+                console.error('Switch failed:', error);
+                alert('Switch failed: ' + error.message);
+                setState({ isLoading: false });
+              }
+            };
             const handleSwitchTab = (tabName) => setState({ activeTab: tabName });
             const handleFilterPools = (filterName) => setState({ dashboardFilter: filterName });
             const handleOpenPoolModal = (poolId) => setState({ isPoolModalOpen: true, selectedPoolId: poolId, selectedNftsToStake: [] });
