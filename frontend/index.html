@@ -6,6 +6,9 @@
     <title>Stakopoly | NFT Staking Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <script src="https://unpkg.com/@web3modal/wagmi@5.1.11/dist/index.js"></script>
+    <script src="https://unpkg.com/wagmi@2.12.11/dist/index.js"></script>
+    <script src="https://unpkg.com/viem@2.21.6/dist/index.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
@@ -998,62 +1001,81 @@
             const readProvider = new ethers.providers.JsonRpcProvider("https://monad-testnet.drpc.org");
             const readFactory = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, readProvider);
 
+            // Web3Modal Configuration
+            const projectId = '2f05a7db73c4b8ce34d2e6a7b1a9b5c0'; // Test project ID - replace with your own from WalletConnect Cloud
+
+            const metadata = {
+              name: 'Stakopoly',
+              description: 'NFT Staking Platform on Monad',
+              url: 'https://stakopoly.vercel.app',
+              icons: ['https://stakopoly.vercel.app/favicon.ico']
+            };
+
+            const monadTestnet = {
+              id: 10143,
+              name: 'Monad Testnet',
+              network: 'monad-testnet',
+              nativeCurrency: {
+                decimals: 18,
+                name: 'MON',
+                symbol: 'MON',
+              },
+              rpcUrls: {
+                default: { http: ['https://monad-testnet.drpc.org'] },
+                public: { http: ['https://monad-testnet.drpc.org'] },
+              },
+              blockExplorers: {
+                default: { name: 'Monad Explorer', url: 'https://testnet.monad.xyz' },
+              },
+              testnet: true,
+            };
+
+            const config = defaultWagmiConfig({
+              chains: [monadTestnet],
+              projectId,
+              metadata,
+              enableWalletConnect: true,
+              enableInjected: true,
+              enableEIP6963: true,
+              enableCoinbase: true,
+            });
+
+            const modal = createWeb3Modal({
+              wagmiConfig: config,
+              projectId,
+              enableAnalytics: false,
+              themeMode: 'light',
+              themeVariables: {
+                '--w3m-color-mix': '#fde68a',
+                '--w3m-color-mix-strength': 20
+              }
+            });
+
             const handleConnectWallet = async () => {
               setState({ isLoading: true });
               try {
-                console.log('Connecting wallet...');
-                if (!window.ethereum) {
-                  alert('Please install MetaMask or another Web3 wallet!');
-                  setState({ isLoading: false });
-                  return;
-                }
+                console.log('Opening Web3Modal...');
+                modal.open();
+                // Wait for connection
+                const unsubscribe = config.subscribe(
+                  ({ connections }) => {
+                    if (connections && connections.size > 0) {
+                      console.log('Wallet connected via Web3Modal');
+                      const connection = Array.from(connections.values())[0];
+                      const account = connection.accounts[0];
+                      console.log('Connected address:', account);
 
-                // Force wallet selection by resetting permissions
-                try {
-                  await window.ethereum.request({
-                    method: 'wallet_requestPermissions',
-                    params: [{ eth_accounts: {} }],
-                  });
-                } catch (permError) {
-                  console.log('Permission reset failed, continuing with normal request...');
-                }
+                      // Create ethers provider from wagmi
+                      provider = new ethers.providers.Web3Provider(window.ethereum);
+                      signer = provider.getSigner();
+                      factoryContract = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
 
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                signer = provider.getSigner();
-                const address = await signer.getAddress();
-                console.log('Connected address:', address);
-                // Switch to Monad testnet
-                try {
-                  console.log('Switching to Monad testnet...');
-                  await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: '0x279f' }],
-                  });
-                  console.log('Switched to Monad testnet');
-                } catch (switchError) {
-                  console.log('Switch error:', switchError);
-                  if (switchError.code === 4902) {
-                    console.log('Adding Monad testnet...');
-                    await window.ethereum.request({
-                      method: 'wallet_addEthereumChain',
-                      params: [{
-                        chainId: '0x279f',
-                        chainName: 'Monad Testnet',
-                        nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-                        rpcUrls: ['https://monad-testnet.drpc.org'],
-                        blockExplorerUrls: ['https://testnet.monad.xyz'],
-                      }],
-                    });
-                    console.log('Added Monad testnet');
-                  } else {
-                    console.log('Switch failed, continuing...');
+                      setState({ userAddress: account, isLoading: false });
+                      modal.close();
+                      unsubscribe();
+                    }
                   }
-                }
-                factoryContract = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
-                console.log('Factory contract initialized');
-                setState({ userAddress: address, isLoading: false });
-                console.log('State updated, should render dashboard');
+                );
               } catch (error) {
                 console.error('Connection failed:', error);
                 alert('Connection failed: ' + error.message);
@@ -1061,63 +1083,35 @@
               }
             };
             const handleConnectTwitter = () => { setState({ isLoading: true }); setTimeout(() => setState({ isTwitterConnected: true, twitterHandle: "@monad_staker", isLoading: false }), 1500); };
-            const handleDisconnect = () => setState({ userAddress: null, isTwitterConnected: false, twitterHandle: null, activeTab: 'dashboard' });
+            const handleDisconnect = () => {
+              config.disconnect();
+              setState({ userAddress: null, isTwitterConnected: false, twitterHandle: null, activeTab: 'dashboard' });
+            };
             const handleSwitchWallet = async () => {
               setState({ isLoading: true });
               try {
-                console.log('Switching wallet...');
-                if (!window.ethereum) {
-                  alert('Please install MetaMask or another Web3 wallet!');
-                  setState({ isLoading: false });
-                  return;
-                }
+                console.log('Opening Web3Modal for wallet switch...');
+                modal.open();
+                // Wait for connection change
+                const unsubscribe = config.subscribe(
+                  ({ connections }) => {
+                    if (connections && connections.size > 0) {
+                      console.log('Wallet switched via Web3Modal');
+                      const connection = Array.from(connections.values())[0];
+                      const account = connection.accounts[0];
+                      console.log('Switched to address:', account);
 
-                // Force wallet selection by resetting permissions
-                try {
-                  await window.ethereum.request({
-                    method: 'wallet_requestPermissions',
-                    params: [{ eth_accounts: {} }],
-                  });
-                } catch (permError) {
-                  console.log('Permission reset failed, continuing with normal request...');
-                }
+                      // Update ethers provider
+                      provider = new ethers.providers.Web3Provider(window.ethereum);
+                      signer = provider.getSigner();
+                      factoryContract = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
 
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                signer = provider.getSigner();
-                const address = await signer.getAddress();
-                console.log('Switched to address:', address);
-                // Ensure we're on Monad testnet
-                try {
-                  console.log('Ensuring Monad testnet...');
-                  await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: '0x279f' }],
-                  });
-                  console.log('On Monad testnet');
-                } catch (switchError) {
-                  console.log('Switch error:', switchError);
-                  if (switchError.code === 4902) {
-                    console.log('Adding Monad testnet...');
-                    await window.ethereum.request({
-                      method: 'wallet_addEthereumChain',
-                      params: [{
-                        chainId: '0x279f',
-                        chainName: 'Monad Testnet',
-                        nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-                        rpcUrls: ['https://monad-testnet.drpc.org'],
-                        blockExplorerUrls: ['https://testnet.monad.xyz'],
-                      }],
-                    });
-                    console.log('Added Monad testnet');
-                  } else {
-                    console.log('Switch failed, continuing...');
+                      setState({ userAddress: account, isLoading: false });
+                      modal.close();
+                      unsubscribe();
+                    }
                   }
-                }
-                factoryContract = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
-                console.log('Factory contract updated');
-                setState({ userAddress: address, isLoading: false });
-                console.log('State updated with new address');
+                );
               } catch (error) {
                 console.error('Switch failed:', error);
                 alert('Switch failed: ' + error.message);
