@@ -1,13 +1,110 @@
-# stakopoly
-Monad Stake dApp - Backend Smart Contracts
-This folder contains the Solidity smart contracts and Hardhat development environment for the Monad Stake dApp.
+# Stakopoly
 
-Project Structure
-/contracts: Contains the Solidity source code.
+A decentralized NFT staking platform built on the Monad blockchain. Users can create staking pools for their NFT collections and earn token rewards.
 
-StakingPool.sol: The core contract that handles all logic for a single staking pool.
+## Features
 
-StakingPoolFactory.sol: The factory contract used to deploy new StakingPool instances.
+- **NFT Staking**: Stake NFTs from supported collections to earn rewards
+- **Pool Creation**: Create custom staking pools with configurable parameters
+- **Real-time Rewards**: Earn tokens based on staking duration and pool emission rates
+- **Web3 Integration**: Connect with MetaMask and interact with the Monad testnet
+
+## Project Structure
+
+```
+stakopoly/
+├── frontend/
+│   └── index.html          # Main dApp interface
+├── backend/
+│   ├── contracts/
+│   │   ├── StakingPool.sol       # Core staking logic
+│   │   └── StakingPoolFactory.sol # Factory for deploying pools
+│   ├── scripts/
+│   │   └── deploy.js             # Deployment script
+│   ├── hardhat.config.js         # Hardhat configuration
+│   ├── package.json              # Backend dependencies
+│   └── .env                      # Environment variables
+└── vercel.json                   # Vercel deployment config
+```
+
+## Backend Setup
+
+### Prerequisites
+- Node.js (v16 or higher)
+- npm or yarn
+
+### Installation
+```bash
+cd backend
+npm install
+```
+
+### Environment Setup
+Create a `.env` file in the `backend` directory:
+```
+PRIVATE_KEY=your_private_key_here
+MONAD_TESTNET_RPC_URL=https://monad-testnet.drpc.org
+```
+
+### Compilation
+```bash
+npm run compile
+```
+
+### Deployment
+```bash
+npm run deploy
+```
+
+## Frontend Setup
+
+The frontend is a static HTML/CSS/JS application that interacts with the deployed smart contracts.
+
+### Deployment
+The project is configured for Vercel deployment. Connect the GitHub repository to Vercel for automatic deployments.
+
+## Smart Contracts
+
+### StakingPool
+- Manages staking logic for a single NFT collection
+- Handles reward distribution based on emission rates
+- Supports staking/unstaking and reward claiming
+
+### StakingPoolFactory
+- Deploys new StakingPool instances
+- Maintains a registry of all created pools
+
+## Network Information
+
+- **Network**: Monad Testnet
+- **Chain ID**: 10143 (0x279f)
+- **RPC URL**: https://monad-testnet.drpc.org
+- **Block Explorer**: https://testnet.monad.xyz
+- **Currency**: MON
+
+## Development
+
+### Local Development
+1. Start Hardhat node: `npx hardhat node`
+2. Deploy contracts: `npx hardhat run scripts/deploy.js --network localhost`
+3. Serve frontend locally: Use a local server (e.g., `python -m http.server`)
+
+### Testing
+```bash
+cd backend
+npx hardhat test
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## License
+
+MIT License
 
 /scripts: Contains deployment scripts.
 
