@@ -1007,6 +1007,17 @@
                   setState({ isLoading: false });
                   return;
                 }
+
+                // Force wallet selection by resetting permissions
+                try {
+                  await window.ethereum.request({
+                    method: 'wallet_requestPermissions',
+                    params: [{ eth_accounts: {} }],
+                  });
+                } catch (permError) {
+                  console.log('Permission reset failed, continuing with normal request...');
+                }
+
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
                 provider = new ethers.providers.Web3Provider(window.ethereum);
                 signer = provider.getSigner();
@@ -1060,6 +1071,17 @@
                   setState({ isLoading: false });
                   return;
                 }
+
+                // Force wallet selection by resetting permissions
+                try {
+                  await window.ethereum.request({
+                    method: 'wallet_requestPermissions',
+                    params: [{ eth_accounts: {} }],
+                  });
+                } catch (permError) {
+                  console.log('Permission reset failed, continuing with normal request...');
+                }
+
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
                 provider = new ethers.providers.Web3Provider(window.ethereum);
                 signer = provider.getSigner();
