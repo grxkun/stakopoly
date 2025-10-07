@@ -47,8 +47,11 @@
                         <div class="text-3xl">🥞</div>
                         <h1 class="text-2xl font-bold tracking-tight">Monad <span class="text-pink-500">Stake</span></h1>
                     </div>
-                    <div id="header-connect-button-container">
-                        <!-- JS will render the connect/disconnect button here -->
+                    <div class="flex items-center space-x-4">
+                        <a href="#demo" id="demo-link" class="text-stone-600 hover:text-stone-800 font-bold px-3 py-2 rounded-lg hover:bg-white/50 transition-colors">🎭 Demo</a>
+                        <div id="header-connect-button-container">
+                            <!-- JS will render the connect/disconnect button here -->
+                        </div>
                     </div>
                 </nav>
             </header>
@@ -156,6 +159,31 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- DEMO PAGE VIEW -->
+                <div id="demo-page-view" class="hidden">
+                    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                        <div class="text-center mb-8">
+                            <h1 class="text-4xl font-bold mb-4">🎭 Demo Mode</h1>
+                            <p class="text-stone-600 max-w-2xl mx-auto">Experience Stakopoly with sample data. Connect your wallet to see real pools and manage your actual NFTs.</p>
+                            <a href="#" id="back-to-main-link" class="inline-block mt-4 bg-pink-400 text-white font-bold px-6 py-3 rounded-lg border-4 border-stone-800 cartoon-shadow hover:-translate-y-1 transition-transform">← Back to Main</a>
+                        </div>
+
+                        <div class="mb-8">
+                            <h2 class="text-3xl font-bold mb-6 text-center">Featured Demo Pools</h2>
+                            <div id="demo-pools-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                                <!-- JS will render demo pools here -->
+                            </div>
+                        </div>
+
+                        <div class="mb-8">
+                            <h2 class="text-3xl font-bold mb-6 text-center">Demo Schedule</h2>
+                            <div id="demo-schedule-container" class="bg-white border-4 border-stone-800 rounded-2xl p-5 cartoon-shadow overflow-x-auto">
+                                <!-- JS will render demo schedule table here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
 
@@ -255,6 +283,7 @@
                 selectedPoolId: null,
                 selectedNftsToStake: [],
                 generatedNftNames: {},
+                currentView: 'landing', // 'landing', 'dashboard', 'demo'
                 // Create Pool Form State
                 createPool: {
                     nftAddress: '',
@@ -270,11 +299,135 @@
                 }
             };
             
+            // --- REAL USER DATA FETCHING ---
+            const fetchUserNFTs = async (userAddress) => {
+                try {
+                    console.log('Fetching user NFTs...');
+                    const nfts = [];
+
+                    // For demo purposes, we'll check a few known NFT contracts
+                    // In production, you'd want to integrate with an NFT indexer like Alchemy, Moralis, etc.
+                    const knownNFTContracts = [
+                        '0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2', // Example Monad Monkeys
+                        // Add more known contracts here
+                    ];
+
+                    for (const contractAddress of knownNFTContracts) {
+                        try {
+                            const nftContract = new ethers.Contract(contractAddress, [
+                                'function balanceOf(address owner) view returns (uint256)',
+                                'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
+                                'function tokenURI(uint256 tokenId) view returns (string)'
+                            ], readProvider);
+
+                            const balance = await nftContract.balanceOf(userAddress);
+                            console.log(`User owns ${balance} NFTs in contract ${contractAddress}`);
+
+                            for (let i = 0; i < balance; i++) {
+                                try {
+                                    const tokenId = await nftContract.tokenOfOwnerByIndex(userAddress, i);
+                                    const tokenURI = await nftContract.tokenURI(tokenId);
+
+                                    // Parse tokenURI (could be IPFS or HTTP)
+                                    let image = 'https://placehold.co/300x300/fde68a/4a2c0c?text=NFT';
+                                    let name = `NFT #${tokenId}`;
+
+                                    if (tokenURI.startsWith('ipfs://')) {
+                                        // Convert IPFS to HTTP gateway
+                                        const ipfsHash = tokenURI.replace('ipfs://', '');
+                                        const metadataUrl = `https://ipfs.io/ipfs/${ipfsHash}`;
+                                        try {
+                                            const response = await fetch(metadataUrl);
+                                            const metadata = await response.json();
+                                            name = metadata.name || name;
+                                            image = metadata.image || image;
+                                            if (image.startsWith('ipfs://')) {
+                                                image = image.replace('ipfs://', 'https://ipfs.io/ipfs/');
+                                            }
+                                        } catch (e) {
+                                            console.log('Failed to fetch NFT metadata:', e);
+                                        }
+                                    }
+
+                                    nfts.push({
+                                        id: tokenId.toString(),
+                                        name: name,
+                                        image: image,
+                                        collection: contractAddress,
+                                        contractAddress: contractAddress
+                                    });
+                                } catch (e) {
+                                    console.log(`Failed to fetch NFT ${i} from contract ${contractAddress}:`, e);
+                                }
+                            }
+                        } catch (e) {
+                            console.log(`Failed to query contract ${contractAddress}:`, e);
+                        }
+                    }
+
+                    console.log('Fetched NFTs:', nfts);
+                    return nfts;
+                } catch (error) {
+                    console.error('Error fetching user NFTs:', error);
+                    return [];
+                }
+            };
+
+            const fetchUserTokens = async (userAddress) => {
+                try {
+                    console.log('Fetching user tokens...');
+                    const tokens = [];
+
+                    // Check balance of common tokens
+                    const knownTokens = [
+                        { name: 'MON', address: '0x0000000000000000000000000000000000000000', decimals: 18 }, // Native token
+                        // Add more known tokens here
+                    ];
+
+                    for (const token of knownTokens) {
+                        try {
+                            let balance;
+                            if (token.address === '0x0000000000000000000000000000000000000000') {
+                                // Native token balance
+                                balance = await readProvider.getBalance(userAddress);
+                            } else {
+                                // ERC20 token balance
+                                const tokenContract = new ethers.Contract(token.address, [
+                                    'function balanceOf(address owner) view returns (uint256)',
+                                    'function decimals() view returns (uint8)',
+                                    'function symbol() view returns (string)'
+                                ], readProvider);
+
+                                balance = await tokenContract.balanceOf(userAddress);
+                            }
+
+                            if (balance.gt(0)) {
+                                const formattedBalance = ethers.utils.formatUnits(balance, token.decimals);
+                                tokens.push({
+                                    name: token.name,
+                                    address: token.address,
+                                    balance: formattedBalance
+                                });
+                            }
+                        } catch (e) {
+                            console.log(`Failed to check balance for token ${token.name}:`, e);
+                        }
+                    }
+
+                    console.log('Fetched tokens:', tokens);
+                    return tokens;
+                } catch (error) {
+                    console.error('Error fetching user tokens:', error);
+                    return [];
+                }
+            };
+
             // --- DOM SELECTORS ---
             const headerConnectButtonContainer = document.getElementById('header-connect-button-container');
             const heroConnectButton = document.getElementById('hero-connect-button');
             const landingPageView = document.getElementById('landing-page-view');
             const dashboardView = document.getElementById('dashboard-view');
+            const demoPageView = document.getElementById('demo-page-view');
             const tabButtons = document.querySelectorAll('.tab-button');
             const tabContents = document.querySelectorAll('.tab-content');
             const filterButtons = document.querySelectorAll('.filter-button');
@@ -283,6 +436,8 @@
             const totalUserRewardsEl = document.getElementById('total-user-rewards');
             const featuredPoolsContainer = document.getElementById('featured-pools-container');
             const poolsScheduleContainer = document.getElementById('pools-schedule-container');
+            const demoPoolsContainer = document.getElementById('demo-pools-container');
+            const demoScheduleContainer = document.getElementById('demo-schedule-container');
             const createPoolContent = document.getElementById('create-pool-content');
             // Modal elements
             const poolModal = document.getElementById('pool-modal');
@@ -336,23 +491,29 @@
             };
 
             // --- RENDER FUNCTIONS ---
-            const render = () => {
+            const render = async () => {
                 // Update connect/disconnect buttons
                 renderConnectButtons();
 
-                if (state.userAddress) {
-                    landingPageView.classList.add('hidden');
+                // Hide all views first
+                landingPageView.classList.add('hidden');
+                dashboardView.classList.add('hidden');
+                demoPageView.classList.add('hidden');
+
+                if (state.currentView === 'demo') {
+                    demoPageView.classList.remove('hidden');
+                    renderDemoPage();
+                } else if (state.userAddress) {
                     dashboardView.classList.remove('hidden');
-                    renderDashboard();
+                    await renderDashboard();
                 } else {
                     landingPageView.classList.remove('hidden');
-                    dashboardView.classList.add('hidden');
                     renderLandingPage();
                 }
 
                 if (state.isPoolModalOpen) {
                     poolModal.classList.remove('hidden');
-                    renderPoolModal();
+                    await renderPoolModal();
                 } else {
                     poolModal.classList.add('hidden');
                 }
@@ -437,20 +598,18 @@
                         });
                     }
                     featuredPoolsContainer.innerHTML = '';
-                    pools.forEach(pool => {
-                        const card = createPoolCard(pool);
-                        card.querySelector('.interact-button').disabled = true;
-                        featuredPoolsContainer.appendChild(card);
-                    });
+                    if (pools.length > 0) {
+                        pools.forEach(pool => {
+                            const card = createPoolCard(pool);
+                            card.querySelector('.interact-button').disabled = true;
+                            featuredPoolsContainer.appendChild(card);
+                        });
+                    } else {
+                        featuredPoolsContainer.innerHTML = `<div class="text-center py-10 bg-white/50 border-4 border-stone-800 rounded-2xl"><p class="text-xl font-bold">No active pools yet!</p><p class="text-stone-500">Be the first to create a staking pool.</p></div>`;
+                    }
                 } catch (error) {
                     console.error('Error fetching pools:', error);
-                    // Fallback to demo
-                    featuredPoolsContainer.innerHTML = '';
-                    MOCK_STAKING_POOLS.slice(0, 3).forEach(pool => {
-                        const card = createPoolCard(pool);
-                        card.querySelector('.interact-button').disabled = true;
-                        featuredPoolsContainer.appendChild(card);
-                    });
+                    featuredPoolsContainer.innerHTML = `<div class="text-center py-10 bg-white/50 border-4 border-stone-800 rounded-2xl"><p class="text-xl font-bold">Unable to load pools</p><p class="text-stone-500">Please try again later.</p></div>`;
                 }
                 renderScheduleTable(poolsScheduleContainer);
             };
@@ -479,7 +638,17 @@
                     </table>`;
             };
 
-            const renderDashboard = () => {
+            const renderDemoPage = () => {
+                demoPoolsContainer.innerHTML = '';
+                MOCK_STAKING_POOLS.slice(0, 3).forEach(pool => {
+                    const card = createPoolCard(pool);
+                    card.querySelector('.interact-button').disabled = true;
+                    demoPoolsContainer.appendChild(card);
+                });
+                renderScheduleTable(demoScheduleContainer);
+            };
+
+            const renderDashboard = async () => {
                 // Tabs
                 tabButtons.forEach(btn => {
                     if (btn.dataset.tab === state.activeTab) {
@@ -498,7 +667,7 @@
                 if (state.activeTab === 'dashboard') {
                     renderDashboardPools();
                 } else if (state.activeTab === 'staked') {
-                    renderStakedPools();
+                    await renderStakedPools();
                 } else if (state.activeTab === 'create') {
                     renderCreatePoolForm();
                 }
@@ -521,14 +690,49 @@
                 }
             };
             
-            const renderStakedPools = () => {
-                const userStakedPools = MOCK_STAKING_POOLS.filter(p => p.userStaked.length > 0);
-                totalUserRewardsEl.textContent = userStakedPools.reduce((acc, pool) => acc + pool.userRewards, 0).toFixed(4);
-                stakedPoolsContainer.innerHTML = '';
-                if (userStakedPools.length > 0) {
-                    userStakedPools.forEach(pool => stakedPoolsContainer.appendChild(createPoolCard(pool)));
-                } else {
-                    stakedPoolsContainer.innerHTML = `<div class="text-center py-10 bg-white/50 border-4 border-stone-800 rounded-2xl md:col-span-2 xl:col-span-3"><p class="text-xl font-bold">You haven't staked any NFTs yet!</p><p class="text-stone-500">Explore the dashboard to find a tasty pool.</p></div>`;
+            const renderStakedPools = async () => {
+                if (!state.userAddress) return;
+
+                try {
+                    // Fetch real user NFTs
+                    const userNFTs = await fetchUserNFTs(state.userAddress);
+                    
+                    // For now, show all user NFTs (in production, you'd track which ones are staked)
+                    // Mock staked pools for demonstration
+                    const userStakedPools = MOCK_STAKING_POOLS.filter(p => p.userStaked.length > 0);
+                    
+                    totalUserRewardsEl.textContent = userStakedPools.reduce((acc, pool) => acc + pool.userRewards, 0).toFixed(4);
+                    
+                    stakedPoolsContainer.innerHTML = '';
+                    
+                    if (userNFTs.length > 0) {
+                        // Show user's NFTs in a grid
+                        const nftGrid = document.createElement('div');
+                        nftGrid.className = 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8';
+                        
+                        userNFTs.forEach(nft => {
+                            const nftCard = document.createElement('div');
+                            nftCard.className = 'bg-white border-4 border-stone-800 rounded-2xl overflow-hidden transition-all duration-200 cartoon-shadow cursor-pointer hover:-translate-y-1';
+                            nftCard.innerHTML = `
+                                <img class="w-full h-32 sm:h-40 object-cover" src="${nft.image}" alt="${nft.name}" onerror="this.src='https://placehold.co/300x300/fde68a/4a2c0c?text=NFT'">
+                                <div class="p-3">
+                                    <h3 class="font-bold text-sm text-stone-800 truncate">${nft.name}</h3>
+                                    <div class="flex justify-between items-center">
+                                        <p class="text-xs text-stone-500">${nft.contractAddress.slice(0, 6)}...${nft.contractAddress.slice(-4)}</p>
+                                        <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded-full border border-stone-800">Owned</span>
+                                    </div>
+                                </div>
+                            `;
+                            nftGrid.appendChild(nftCard);
+                        });
+                        
+                        stakedPoolsContainer.appendChild(nftGrid);
+                    } else {
+                        stakedPoolsContainer.innerHTML = `<div class="text-center py-10 bg-white/50 border-4 border-stone-800 rounded-2xl md:col-span-2 xl:col-span-3"><p class="text-xl font-bold">No NFTs found in your wallet!</p><p class="text-stone-500">Make sure you're connected to Monad testnet and own some NFTs.</p></div>`;
+                    }
+                } catch (error) {
+                    console.error('Error rendering staked pools:', error);
+                    stakedPoolsContainer.innerHTML = `<div class="text-center py-10 bg-white/50 border-4 border-stone-800 rounded-2xl"><p class="text-xl font-bold">Error loading your NFTs</p><p class="text-stone-500">Please try refreshing the page.</p></div>`;
                 }
             };
             
@@ -573,12 +777,23 @@
                 }
             };
 
-            const renderPoolModal = () => {
+            const renderPoolModal = async () => {
                 const pool = MOCK_STAKING_POOLS.find(p => p.id === state.selectedPoolId);
                 if (!pool) return;
 
                 modalTitle.textContent = `Interact with ${pool.nftCollectionName} Pool`;
-                const userNftsForPool = state.userAddress ? (MOCK_USER_NFTS[pool.nftAddress] || []) : [];
+                
+                // Fetch real user NFTs for this collection
+                let userNftsForPool = [];
+                if (state.userAddress) {
+                    try {
+                        const allUserNFTs = await fetchUserNFTs(state.userAddress);
+                        userNftsForPool = allUserNFTs.filter(nft => nft.contractAddress.toLowerCase() === pool.nftAddress.toLowerCase());
+                    } catch (error) {
+                        console.error('Error fetching user NFTs for pool:', error);
+                        userNftsForPool = [];
+                    }
+                }
 
                 modalBody.innerHTML = `
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-stone-800">
@@ -1174,6 +1389,16 @@
             modalAnalyzeButton.addEventListener('click', handleAnalyzePool);
             tabButtons.forEach(btn => btn.addEventListener('click', () => handleSwitchTab(btn.dataset.tab)));
             filterButtons.forEach(btn => btn.addEventListener('click', () => handleFilterPools(btn.dataset.filter)));
+
+            // Demo page navigation
+            document.getElementById('demo-link').addEventListener('click', (e) => {
+                e.preventDefault();
+                setState({ currentView: 'demo' });
+            });
+            document.getElementById('back-to-main-link').addEventListener('click', (e) => {
+                e.preventDefault();
+                setState({ currentView: 'landing' });
+            });
             
             // Timer to update countdowns
             setInterval(() => {
