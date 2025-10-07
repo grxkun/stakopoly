@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monad Stake | NFT Staking Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Happy Pastel (Soft Yellow, Mint, Pink, Blue) with a Cartoon Kitchen theme -->
+    <!-- Application Structure Plan: The application uses a dual-view structure. Initially, an unconnected user sees a landing page designed as a marketing funnel, explaining the value proposition with a "How It Works" section, featured pools, and a clear schedule to encourage connection. Once connected, the view switches to a task-oriented, tabbed interface for the core dApp. The tabs ("Dashboard", "My Staked NFTs", "Create a Pool") logically separate the primary user goals: exploring opportunities, managing personal assets, and creating new pools. This structure guides new users effectively while providing a powerful and intuitive experience for returning users. -->
+    <!-- Visualization & Content Choices: Pool data is presented in a responsive card grid for quick visual comparison (Goal: Compare). User interaction with pools occurs in a modal to maintain context (Goal: Interact). Pool creation is a guided form with dropdowns and verification steps (Goal: Organize/Create). A schedule is shown in a clear HTML table for scannability (Goal: Inform). All icons are implemented as Unicode emojis (e.g., 👛, ✨, 🐦) to adhere to the NO SVG/Mermaid rule, ensuring a consistent visual theme without external graphics. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Fredoka One', cursive; }
+        .cartoon-shadow { box-shadow: 6px 6px 0px #292524; }
+        .cartoon-shadow-sm { box-shadow: 4px 4px 0px #292524; }
+        @keyframes modal-pop { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .animate-modal-pop { animation: modal-pop 0.2s ease-out forwards; }
+        .bg-bubbles { background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23a7f3d0' fill-opacity='0.2'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+    </style>
+</head>
+<body class="bg-amber-50 text-stone-800">
+
+    <div id="app">
+        <!-- APP SHELL -->
+        <div class="fixed top-0 left-0 w-full h-full bg-bubbles z-0"></div>
+        <div class="relative z-10">
+            <header class="bg-amber-100/80 backdrop-blur-lg border-b-4 border-stone-800 sticky top-0 z-40">
+                <nav class="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20">
+                    <div class="flex items-center space-x-2">
+                        <div class="text-3xl">🥞</div>
+                        <h1 class="text-2xl font-bold tracking-tight">Monad <span class="text-pink-500">Stake</span></h1>
+                    </div>
+                    <div id="header-connect-button-container">
+                        <!-- JS will render the connect/disconnect button here -->
+                    </div>
+                </nav>
+            </header>
+
+            <main>
+                <!-- UNCONNECTED (LANDING PAGE) VIEW -->
+                <div id="landing-page-view">
+                    <!-- Hero Section -->
+                    <section class="py-24 sm:py-32">
+                        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                            <span class="bg-amber-300 text-stone-800 text-sm font-bold px-4 py-1.5 rounded-full border-2 border-stone-800">On Monad Testnet</span>
+                            <h1 class="mt-4 text-4xl sm:text-6xl font-extrabold tracking-tight text-stone-800">Create Your Own NFT Staking Pools</h1>
+                            <p class="mt-6 max-w-2xl mx-auto text-lg text-stone-600">Unlock utility for your NFT collection. Allow your holders to stake their NFTs and earn token rewards, all through a simple and secure dashboard.</p>
+                            <button id="hero-connect-button" class="mt-10 bg-pink-400 font-bold px-8 py-4 text-lg rounded-lg border-4 border-stone-800 cartoon-shadow hover:-translate-y-1 transition-transform disabled:bg-stone-300 disabled:cursor-not-allowed flex items-center justify-center group w-full sm:w-auto mx-auto">
+                                <span>Connect Wallet to Get Started</span>
+                                <span class="ml-2 group-hover:translate-x-1 transition-transform text-2xl">→</span>
+                            </button>
+                        </div>
+                    </section>
+                    <!-- How It Works Section -->
+                    <section class="py-20 bg-amber-100/50">
+                        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                            <h2 class="text-3xl font-bold text-center mb-12">How It Works</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="bg-sky-200 p-4 rounded-full mb-4 border-4 border-stone-800 text-3xl">👛</div>
+                                    <h3 class="text-xl font-semibold mb-2">1. Connect</h3>
+                                    <p class="text-stone-600">Securely connect your Monad wallet to get started.</p>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="bg-pink-200 p-4 rounded-full mb-4 border-4 border-stone-800 text-3xl">✨</div>
+                                    <h3 class="text-xl font-semibold mb-2">2. Create or Stake</h3>
+                                    <p class="text-stone-600">Create a new staking pool for your own NFT collection or stake your NFTs in existing pools.</p>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="bg-teal-200 p-4 rounded-full mb-4 border-4 border-stone-800 text-3xl">💰</div>
+                                    <h3 class="text-xl font-semibold mb-2">3. Earn Rewards</h3>
+                                    <p class="text-stone-600">Watch your token rewards accumulate in real-time and claim them whenever you want.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Featured Pools Section -->
+                    <section class="py-20">
+                        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                            <h2 class="text-3xl font-bold text-center mb-12">Featured Pools</h2>
+                            <div id="featured-pools-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                                <!-- JS will render featured pools here -->
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Pools Schedule Section -->
+                    <section class="py-20 bg-amber-100/50">
+                        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                            <h2 class="text-3xl font-bold text-center mb-12">Pools Schedule</h2>
+                            <div id="pools-schedule-container" class="bg-white border-4 border-stone-800 rounded-2xl p-5 cartoon-shadow overflow-x-auto">
+                                <!-- JS will render schedule table here -->
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- CONNECTED (DASHBOARD) VIEW -->
+                <div id="dashboard-view" class="hidden">
+                    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                        <!-- Tab Navigation -->
+                        <div class="mb-8 p-1.5 bg-white/50 rounded-xl border-4 border-stone-800 flex items-center space-x-2 max-w-md mx-auto">
+                            <button data-tab="dashboard" class="tab-button flex items-center justify-center w-full px-4 py-3 font-bold rounded-lg border-4 border-stone-800 transition-all duration-200"><span class="mr-2">🎛️</span> Dashboard</button>
+                            <button data-tab="staked" class="tab-button flex items-center justify-center w-full px-4 py-3 font-bold rounded-lg border-4 border-stone-800 transition-all duration-200"><span class="mr-2">📦</span> My NFTs</button>
+                            <button data-tab="create" class="tab-button flex items-center justify-center w-full px-4 py-3 font-bold rounded-lg border-4 border-stone-800 transition-all duration-200"><span class="mr-2">➕</span> Create Pool</button>
+                        </div>
+                        
+                        <!-- Tab Content -->
+                        <div>
+                            <!-- Dashboard Tab -->
+                            <div id="tab-content-dashboard" class="tab-content">
+                                <div class="flex justify-center space-x-2 sm:space-x-4 mb-8">
+                                    <button data-filter="Live" class="filter-button px-4 py-1.5 text-sm font-bold rounded-full border-4 border-stone-800 transition-all duration-200 cartoon-shadow">🟢 Live</button>
+                                    <button data-filter="Upcoming" class="filter-button px-4 py-1.5 text-sm font-bold rounded-full border-4 border-stone-800 transition-all duration-200 cartoon-shadow">🟡 Upcoming</button>
+                                    <button data-filter="Ended" class="filter-button px-4 py-1.5 text-sm font-bold rounded-full border-4 border-stone-800 transition-all duration-200 cartoon-shadow">🔴 Ended</button>
+                                </div>
+                                <div id="dashboard-pools-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                                    <!-- JS will render filtered pools here -->
+                                </div>
+                            </div>
+                            <!-- My Staked NFTs Tab -->
+                            <div id="tab-content-staked" class="tab-content hidden">
+                                <div class="bg-white border-4 border-stone-800 rounded-xl p-6 mb-8 max-w-sm mx-auto text-center cartoon-shadow">
+                                    <p class="text-stone-500 font-bold">Total Claimable Rewards</p>
+                                    <p id="total-user-rewards" class="text-4xl font-bold text-teal-500 mt-1">0.0000</p>
+                                </div>
+                                <div id="staked-pools-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                                    <!-- JS will render user's staked pools here -->
+                                </div>
+                            </div>
+                            <!-- Create a Pool Tab -->
+                            <div id="tab-content-create" class="tab-content hidden">
+                                <div class="max-w-3xl mx-auto bg-white border-4 border-stone-800 rounded-2xl p-6 sm:p-8 cartoon-shadow">
+                                    <h2 class="text-3xl font-bold mb-6 text-center">Create a New Staking Pool</h2>
+                                    <div id="create-pool-content">
+                                        <!-- JS will render either Twitter connect prompt or the form -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- MODAL -->
+        <div id="pool-modal" class="fixed inset-0 bg-stone-800 bg-opacity-70 z-50 flex justify-center items-center p-4 hidden">
+            <div class="bg-amber-100 border-4 border-stone-800 rounded-2xl w-full max-w-2xl mx-auto shadow-2xl transform transition-all duration-300 scale-95 animate-modal-pop">
+                <div class="flex justify-between items-center p-5 border-b-4 border-stone-800">
+                    <h2 id="modal-title" class="text-2xl font-bold text-stone-800"></h2>
+                    <div class="flex items-center space-x-2">
+                        <button id="modal-analyze-button" class="flex items-center space-x-2 text-sm bg-purple-400/50 text-purple-900 px-3 py-1.5 rounded-lg border-2 border-stone-800 hover:bg-purple-400/80 disabled:bg-stone-300">
+                            <span class="text-lg">🔮</span>
+                            <span class="font-bold">تحليل المجمع</span>
+                        </button>
+                        <button id="modal-share-button" class="flex items-center space-x-2 text-sm bg-sky-400/50 text-sky-900 px-3 py-1.5 rounded-lg border-2 border-stone-800 hover:bg-sky-400/80 disabled:bg-stone-300 disabled:text-stone-500">
+                            <span class="text-lg">🐦</span>
+                            <span class="font-bold">Share</span>
+                        </button>
+                        <button id="modal-close-button" class="text-stone-500 hover:text-stone-800 text-4xl leading-none font-bold">&times;</button>
+                    </div>
+                </div>
+                <div id="modal-body" class="p-6">
+                    <!-- JS will render modal content here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TEMPLATES FOR JS -->
+    <template id="pool-card-template">
+        <div class="pool-card bg-white border-4 border-stone-800 rounded-2xl overflow-hidden transition-colors duration-200 cartoon-shadow">
+            <div class="h-24 bg-amber-100">
+                <img class="nft-collection-image w-full h-full object-cover" src="" alt="">
+            </div>
+            <div class="p-5">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="nft-collection-name text-xl font-bold text-stone-800"></h3>
+                        <p class="owner-address text-sm text-stone-500"></p>
+                    </div>
+                    <div class="text-right flex-shrink-0 ml-2">
+                        <p class="emission-rate text-lg font-bold text-pink-500"></p>
+                        <p class="text-xs text-stone-500">per day</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4 text-center my-6">
+                    <div><p class="total-staked text-2xl font-bold text-stone-800"></p><p class="text-xs text-stone-500">Total Staked</p></div>
+                    <div><p class="user-staked text-2xl font-bold text-stone-800"></p><p class="text-xs text-stone-500">You Staked</p></div>
+                    <div><p class="user-rewards text-2xl font-bold text-teal-500"></p><p class="text-xs text-stone-500">Your Rewards</p></div>
+                </div>
+                <div class="mb-4 timer-display"></div>
+                <button class="interact-button w-full bg-sky-400 text-stone-800 font-bold py-3 px-4 rounded-lg border-4 border-stone-800 cartoon-shadow hover:-translate-y-1 transition-transform disabled:bg-stone-300 disabled:cursor-not-allowed"></button>
+            </div>
+        </div>
+    </template>
+
+    <template id="nft-card-template">
+         <div class="nft-card bg-white border-4 border-stone-800 rounded-2xl overflow-hidden transition-all duration-200 cartoon-shadow cursor-pointer hover:-translate-y-1">
+            <img class="nft-image w-full h-32 sm:h-40 object-cover" src="" alt="">
+            <div class="p-3">
+                <h3 class="nft-name font-bold text-sm text-stone-800 truncate"></h3>
+                <div class="flex justify-between items-center">
+                    <p class="nft-collection text-xs text-stone-500"></p>
+                    <button class="generate-name-button text-pink-500 hover:text-pink-400 disabled:text-gray-400 text-lg">✨</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- MOCK DATA ---
+            const now = new Date();
+            const MOCK_STAKING_POOLS = [
+                { id: 1, owner: '0x1a2b3c...', nftCollectionName: 'Monad Monkeys', nftCollectionImage: 'https://placehold.co/100x100/fde68a/4a2c0c?text=🐵', nftAddress: '0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2', rewardToken: 'REWARD', emissionRate: 10, totalStaked: 125, userStaked: [{ id: 1, name: 'Monad Monkey #123', image: 'https://placehold.co/300x300/fde68a/4a2c0c?text=Monkey\\n%23123' }], userRewards: 4.25, startTime: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 7).toISOString(), endTime: new Date(now.getTime() + 1000 * 60 * 60 * 24 * 7).toISOString() },
+                { id: 2, owner: '0x4d5e6f...', nftCollectionName: 'Cyber Droids', nftCollectionImage: 'https://placehold.co/100x100/a7f3d0/1e3a26?text=🤖', nftAddress: '0xAnotherNFTAddress...', rewardToken: 'CYBER', emissionRate: 5, totalStaked: 78, userStaked: [], userRewards: 0, startTime: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 2).toISOString(), endTime: new Date(now.getTime() + 1000 * 60 * 60 * 24 * 5).toISOString() },
+                { id: 3, owner: '0x7g8h9i...', nftCollectionName: 'Quantum Cats', nftCollectionImage: 'https://placehold.co/100x100/fbcfe8/831843?text=😼', nftAddress: '0xQuantumCatsAddress...', rewardToken: 'MEOW', emissionRate: 20, totalStaked: 210, userStaked: [], userRewards: 0, startTime: new Date(now.getTime() + 1000 * 60 * 60 * 24).toISOString(), endTime: new Date(now.getTime() + 1000 * 60 * 60 * 24 * 8).toISOString() },
+                { id: 4, owner: '0xjk1l2m...', nftCollectionName: 'Pixel Punks', nftCollectionImage: 'https://placehold.co/100x100/d8b4fe/581c87?text=👾', nftAddress: '0xPixelPunksAddress...', rewardToken: 'PIXEL', emissionRate: 15, totalStaked: 500, userStaked: [], userRewards: 0, startTime: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 10).toISOString(), endTime: new Date(now.getTime() - 1000 * 60 * 60 * 24).toISOString() },
+                { id: 5, owner: '0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2', nftCollectionName: 'Galactic Gorillas', nftCollectionImage: 'https://placehold.co/100x100/bae6fd/0c4a6e?text=🦍', nftAddress: '0xGorillasAddress...', rewardToken: 'G-COIN', emissionRate: 50, totalStaked: 0, userStaked: [], userRewards: 0, startTime: new Date(now.getTime() + 1000 * 60 * 60 * 8).toISOString(), endTime: new Date(now.getTime() + 1000 * 60 * 60 * 24 * 7).toISOString() }
+            ];
+            const MOCK_USER_NFTS = { '0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2': [{ id: 1, name: 'Monad Monkey #123', image: 'https://placehold.co/300x300/fde68a/4a2c0c?text=Monkey\\n%23123', collection: 'Monad Monkeys' }, { id: 2, name: 'Monad Monkey #456', image: 'https://placehold.co/300x300/fde68a/4a2c0c?text=Monkey\\n%23456', collection: 'Monad Monkeys' }], '0xAnotherNFTAddress...': [{ id: 3, name: 'Cyber Droid #789', image: 'https://placehold.co/300x300/a7f3d0/1e3a26?text=Droid\\n%23789', collection: 'Cyber Droids' }] };
+            const MOCK_USER_OWNED_ASSETS = { nfts: [{ name: 'Monad Monkeys', address: '0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2' }, { name: 'Pixel Punks', address: '0xNonVerifiedNFTAddress...' }], tokens: [{ name: 'REWARD', address: '0xRewardTokenAddress...' }, { name: 'SHIBA', address: '0xNonVerifiedTokenAddress...' }] };
+            const MOCK_VERIFIED_NFT_ADDRESS = '0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2';
+            const MOCK_VERIFIED_TOKEN_ADDRESS = '0xRewardTokenAddress...';
+            
+            // --- STATE MANAGEMENT ---
+            let state = {
+                currentTime: new Date().getTime(),
+                userAddress: null,
+                isTwitterConnected: false,
+                twitterHandle: null,
+                isLoading: false,
+                activeTab: 'dashboard',
+                dashboardFilter: 'Live',
+                isPoolModalOpen: false,
+                selectedPoolId: null,
+                selectedNftsToStake: [],
+                generatedNftNames: {},
+                // Create Pool Form State
+                createPool: {
+                    nftAddress: '',
+                    tokenAddress: '',
+                    startTime: '',
+                    endTime: '',
+                    isNftVerifying: false,
+                    isNftVerified: null,
+                    isTokenVerifying: false,
+                    isTokenVerified: null,
+                    description: '',
+                    isGeminiLoading: false
+                }
+            };
+            
+            // --- DOM SELECTORS ---
+            const headerConnectButtonContainer = document.getElementById('header-connect-button-container');
+            const heroConnectButton = document.getElementById('hero-connect-button');
+            const landingPageView = document.getElementById('landing-page-view');
+            const dashboardView = document.getElementById('dashboard-view');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const filterButtons = document.querySelectorAll('.filter-button');
+            const dashboardPoolsContainer = document.getElementById('dashboard-pools-container');
+            const stakedPoolsContainer = document.getElementById('staked-pools-container');
+            const totalUserRewardsEl = document.getElementById('total-user-rewards');
+            const featuredPoolsContainer = document.getElementById('featured-pools-container');
+            const poolsScheduleContainer = document.getElementById('pools-schedule-container');
+            const createPoolContent = document.getElementById('create-pool-content');
+            // Modal elements
+            const poolModal = document.getElementById('pool-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const modalShareButton = document.getElementById('modal-share-button');
+            const modalAnalyzeButton = document.getElementById('modal-analyze-button');
+            const modalCloseButton = document.getElementById('modal-close-button');
+
+
+            // --- HELPER & UTILITY FUNCTIONS ---
+            const formatDuration = (ms) => {
+                if (ms < 0) ms = 0;
+                const d = Math.floor(ms / (1000 * 60 * 60 * 24));
+                const h = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((ms % (1000 * 60)) / 1000);
+                return `${d}d ${h}h ${m}m ${s}s`;
+            };
+
+            const getPoolStatus = (pool, now) => {
+                const startTime = new Date(pool.startTime).getTime();
+                const endTime = new Date(pool.endTime).getTime();
+                if (now < startTime) return 'Upcoming';
+                if (now >= startTime && now <= endTime) return 'Live';
+                return 'Ended';
+            };
+            
+            const setState = (newState) => {
+                state = { ...state, ...newState };
+                render();
+            };
+
+            const callGeminiAPI = async (prompt) => {
+              console.log("Calling Gemini API with prompt:", prompt);
+              return new Promise(resolve => {
+                setTimeout(() => {
+                  if (prompt.includes("description for an NFT staking pool")) {
+                      resolve("Lock up your NFTs to earn delicious tokens! The longer you stake, the more you earn. Join the fun and reap the benefits of true ownership!");
+                  } else if (prompt.includes("Generate a cool, creative name")) {
+                      resolve(`Cosmic Voyager #${Math.floor(Math.random() * 1000)}`);
+                  } else if (prompt.includes("Generate a short, exciting tweet")) {
+                      resolve(`Staking my NFTs to earn tokens! 💎\n\nCome join the new pool on Monad Stake. Passive income for holders is the future!\n\n#Monad #NFTStaking #Crypto`);
+                  } else if (prompt.includes("Analyze this staking pool")) {
+                      resolve("<strong>تحليل الذكاء الاصطناعي:</strong> This pool offers a high emission rate, suggesting strong potential rewards. However, the relatively short duration means you'll need to stake early to maximize gains. The NFT collection is moderately popular, which should ensure steady staking activity. Overall, it's a high-risk, high-reward opportunity for short-term holders.");
+                  } else {
+                      resolve("I couldn't think of anything cool right now, sorry!");
+                  }
+                }, 1500);
+              });
+            };
+
+            // --- RENDER FUNCTIONS ---
+            const render = () => {
+                // Update connect/disconnect buttons
+                renderConnectButtons();
+
+                if (state.userAddress) {
+                    landingPageView.classList.add('hidden');
+                    dashboardView.classList.remove('hidden');
+                    renderDashboard();
+                } else {
+                    landingPageView.classList.remove('hidden');
+                    dashboardView.classList.add('hidden');
+                    renderLandingPage();
+                }
+
+                if (state.isPoolModalOpen) {
+                    poolModal.classList.remove('hidden');
+                    renderPoolModal();
+                } else {
+                    poolModal.classList.add('hidden');
+                }
+            };
+            
+            const renderConnectButtons = () => {
+                if (state.userAddress) {
+                    headerConnectButtonContainer.innerHTML = `
+                        <div class="flex items-center space-x-2 sm:space-x-4">
+                           ${state.isTwitterConnected ? `<div class="hidden sm:flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border-2 border-stone-800"><span class="text-lg">🐦</span><span class="font-bold text-sm">${state.twitterHandle}</span></div>` : ''}
+                            <div class="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border-2 border-stone-800"><span class="text-lg">👛</span><span class="font-mono text-sm">${state.userAddress.slice(0, 4)}...${state.userAddress.slice(-4)}</span></div>
+                            <button id="disconnect-button" class="p-2 rounded-lg bg-white border-2 border-stone-800 hover:bg-red-200 text-stone-800 transition-colors text-2xl">🚪</button>
+                        </div>
+                    `;
+                    document.getElementById('disconnect-button').addEventListener('click', handleDisconnect);
+                } else {
+                     headerConnectButtonContainer.innerHTML = `<button id="header-connect-button" class="bg-amber-300 font-bold px-5 py-3 rounded-lg border-4 border-stone-800 cartoon-shadow hover:-translate-y-1 transition-transform disabled:bg-stone-300">${state.isLoading ? "Connecting..." : "Connect Wallet"}</button>`;
+                     document.getElementById('header-connect-button').addEventListener('click', handleConnectWallet);
+                }
+                 heroConnectButton.disabled = state.isLoading;
+                 heroConnectButton.querySelector('span').textContent = state.isLoading ? "Connecting..." : "Connect Wallet to Get Started";
+            };
+
+            const createPoolCard = (pool) => {
+                const template = document.getElementById('pool-card-template');
+                const card = template.content.cloneNode(true).firstElementChild;
+                const status = getPoolStatus(pool, state.currentTime);
+                
+                card.querySelector('.nft-collection-image').src = pool.nftCollectionImage;
+                card.querySelector('.nft-collection-image').alt = pool.nftCollectionName;
+                card.querySelector('.nft-collection-name').textContent = pool.nftCollectionName;
+                card.querySelector('.owner-address').textContent = `by ${pool.owner.slice(0, 6)}...${pool.owner.slice(-4)}`;
+                card.querySelector('.emission-rate').textContent = `${pool.emissionRate} $${pool.rewardToken}`;
+                card.querySelector('.total-staked').textContent = pool.totalStaked;
+                card.querySelector('.user-staked').textContent = pool.userStaked.length;
+                card.querySelector('.user-rewards').textContent = pool.userRewards.toFixed(4);
+                
+                const timerDisplay = card.querySelector('.timer-display');
+                if (status === 'Upcoming') timerDisplay.innerHTML = `<div class="text-center bg-amber-200 text-amber-800 py-1 rounded-lg border-2 border-stone-800 text-sm font-bold">Starts in: ${formatDuration(new Date(pool.startTime).getTime() - state.currentTime)}</div>`;
+                else if (status === 'Live') timerDisplay.innerHTML = `<div class="text-center bg-teal-200 text-teal-800 py-1 rounded-lg border-2 border-stone-800 text-sm font-bold">Ends in: ${formatDuration(new Date(pool.endTime).getTime() - state.currentTime)}</div>`;
+                else timerDisplay.innerHTML = `<div class="text-center bg-stone-200 text-stone-600 py-1 rounded-lg border-2 border-stone-800 text-sm font-bold">Ended on ${new Date(pool.endTime).toLocaleDateString()}</div>`;
+
+                const interactButton = card.querySelector('.interact-button');
+                interactButton.textContent = status === 'Upcoming' ? 'View Details' : 'View Pool';
+                interactButton.disabled = status === 'Ended';
+                if(status !== 'Ended') {
+                    interactButton.addEventListener('click', () => handleOpenPoolModal(pool.id));
+                }
+
+                if (status === 'Ended') card.classList.add('opacity-60');
+
+                return card;
+            };
+            
+            const renderLandingPage = () => {
+                featuredPoolsContainer.innerHTML = '';
+                MOCK_STAKING_POOLS.slice(0, 3).forEach(pool => {
+                    const card = createPoolCard(pool);
+                    card.querySelector('.interact-button').disabled = true; // Disable interaction on landing page
+                    featuredPoolsContainer.appendChild(card);
+                });
+                renderScheduleTable(poolsScheduleContainer);
+            };
+
+            const renderScheduleTable = (container) => {
+                 container.innerHTML = `
+                    <table class="w-full text-left min-w-[600px]">
+                        <thead><tr class="border-b-4 border-stone-800"><th class="p-3 text-lg font-bold text-stone-600">Pool</th><th class="p-3 text-lg font-bold text-stone-600">Reward</th><th class="p-3 text-lg font-bold text-stone-600">Starts On</th><th class="p-3 text-lg font-bold text-stone-600">Ends On</th><th class="p-3 text-lg font-bold text-stone-600">Status</th></tr></thead>
+                        <tbody>${MOCK_STAKING_POOLS.map(pool => {
+                            const status = getPoolStatus(pool, state.currentTime);
+                            const startTime = new Date(pool.startTime);
+                            const endTime = new Date(pool.endTime);
+                            let statusBadge = '';
+                            if (status === 'Upcoming') statusBadge = `<span class="bg-amber-200 text-amber-800 font-bold px-2 py-1 rounded-full border-2 border-stone-800 text-sm">Upcoming</span>`;
+                            else if (status === 'Live') statusBadge = `<span class="bg-teal-200 text-teal-800 font-bold px-2 py-1 rounded-full border-2 border-stone-800 text-sm">Live</span>`;
+                            else statusBadge = `<span class="bg-stone-200 text-stone-600 font-bold px-2 py-1 rounded-full border-2 border-stone-800 text-sm">Ended</span>`;
+                            
+                            return `<tr class="border-b-2 border-stone-200 last:border-b-0">
+                                <td class="p-3 font-bold text-stone-800"><div class="flex items-center space-x-3"><img src="${pool.nftCollectionImage}" alt="${pool.nftCollectionName}" class="w-10 h-10 rounded-full border-2 border-stone-800 object-cover" /><span>${pool.nftCollectionName}</span></div></td>
+                                <td class="p-3 font-bold text-pink-500">$${pool.rewardToken}</td>
+                                <td class="p-3 text-stone-600">${startTime.toLocaleString()}</td>
+                                <td class="p-3 text-stone-600">${endTime.toLocaleString()}</td>
+                                <td class="p-3">${statusBadge}</td></tr>`;
+                        }).join('')}
+                        </tbody>
+                    </table>`;
+            };
+
+            const renderDashboard = () => {
+                // Tabs
+                tabButtons.forEach(btn => {
+                    if (btn.dataset.tab === state.activeTab) {
+                        btn.classList.add('bg-amber-300', 'text-stone-800', '-translate-y-1');
+                        btn.classList.remove('bg-white', 'text-stone-500', 'hover:bg-amber-100');
+                    } else {
+                        btn.classList.add('bg-white', 'text-stone-500', 'hover:bg-amber-100');
+                        btn.classList.remove('bg-amber-300', 'text-stone-800', '-translate-y-1');
+                    }
+                });
+                tabContents.forEach(content => {
+                    content.classList.toggle('hidden', content.id !== `tab-content-${state.activeTab}`);
+                });
+
+                // Content for each tab
+                if (state.activeTab === 'dashboard') {
+                    renderDashboardPools();
+                } else if (state.activeTab === 'staked') {
+                    renderStakedPools();
+                } else if (state.activeTab === 'create') {
+                    renderCreatePoolForm();
+                }
+            };
+
+            const renderDashboardPools = () => {
+                filterButtons.forEach(btn => {
+                    btn.classList.toggle('bg-pink-400', btn.dataset.filter === state.dashboardFilter);
+                    btn.classList.toggle('text-white', btn.dataset.filter === state.dashboardFilter);
+                    btn.classList.toggle('bg-white', btn.dataset.filter !== state.dashboardFilter);
+                    btn.classList.toggle('text-stone-800', btn.dataset.filter !== state.dashboardFilter);
+                });
+
+                const filteredPools = MOCK_STAKING_POOLS.filter(p => getPoolStatus(p, state.currentTime) === state.dashboardFilter);
+                dashboardPoolsContainer.innerHTML = '';
+                if (filteredPools.length > 0) {
+                    filteredPools.forEach(pool => dashboardPoolsContainer.appendChild(createPoolCard(pool)));
+                } else {
+                    dashboardPoolsContainer.innerHTML = `<div class="text-center py-10 bg-white/50 border-4 border-stone-800 rounded-2xl md:col-span-2 xl:col-span-3"><p class="text-xl font-bold">No ${state.dashboardFilter.toLowerCase()} pools found!</p><p class="text-stone-500">Check back later or try another category.</p></div>`;
+                }
+            };
+            
+            const renderStakedPools = () => {
+                const userStakedPools = MOCK_STAKING_POOLS.filter(p => p.userStaked.length > 0);
+                totalUserRewardsEl.textContent = userStakedPools.reduce((acc, pool) => acc + pool.userRewards, 0).toFixed(4);
+                stakedPoolsContainer.innerHTML = '';
+                if (userStakedPools.length > 0) {
+                    userStakedPools.forEach(pool => stakedPoolsContainer.appendChild(createPoolCard(pool)));
+                } else {
+                    stakedPoolsContainer.innerHTML = `<div class="text-center py-10 bg-white/50 border-4 border-stone-800 rounded-2xl md:col-span-2 xl:col-span-3"><p class="text-xl font-bold">You haven't staked any NFTs yet!</p><p class="text-stone-500">Explore the dashboard to find a tasty pool.</p></div>`;
+                }
+            };
+            
+            const renderCreatePoolForm = () => {
+                if (!state.isTwitterConnected) {
+                    createPoolContent.innerHTML = `
+                        <div class="text-center p-8 border-4 border-dashed border-stone-400 rounded-xl">
+                            <h3 class="text-xl font-bold">Twitter Connection Required!</h3>
+                            <p class="text-stone-600 my-4">To create a new pool, you need to securely connect your Twitter account. This helps build a trusted community of creators.</p>
+                            <button id="connect-twitter-button" class="bg-sky-400 text-stone-800 font-bold py-3 px-6 rounded-lg border-4 border-stone-800 cartoon-shadow hover:-translate-y-1 transition-transform disabled:bg-stone-300">
+                                ${state.isLoading ? "Connecting..." : "Connect Twitter via Privy"}
+                            </button>
+                        </div>`;
+                    document.getElementById('connect-twitter-button').addEventListener('click', handleConnectTwitter);
+                } else {
+                    const { createPool } = state;
+                    createPoolContent.innerHTML = `
+                         <form id="create-pool-form" class="space-y-6">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div><label for="startTime" class="block text-lg font-bold text-stone-600 mb-1">Start Time</label><input type="datetime-local" name="startTime" required value="${createPool.startTime}" class="w-full bg-amber-50 border-4 border-stone-800 rounded-lg px-3 py-2 font-bold focus:ring-pink-500 focus:border-pink-500"/></div>
+                                <div><label for="endTime" class="block text-lg font-bold text-stone-600 mb-1">End Time</label><input type="datetime-local" name="endTime" required value="${createPool.endTime}" class="w-full bg-amber-50 border-4 border-stone-800 rounded-lg px-3 py-2 font-bold focus:ring-pink-500 focus:border-pink-500"/></div>
+                            </div>
+                            <div><label class="block text-lg font-bold text-stone-600 mb-1">Your NFT Collections</label><div class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2"><select name="nftAddress" required class="w-full bg-amber-50 border-4 border-stone-800 rounded-lg px-3 py-2 font-bold focus:ring-pink-500 focus:border-pink-500"><option value="" disabled ${createPool.nftAddress === '' ? 'selected' : ''}>Select a collection...</option>${MOCK_USER_OWNED_ASSETS.nfts.map(nft => `<option value="${nft.address}" ${createPool.nftAddress === nft.address ? 'selected' : ''}>${nft.name}</option>`).join('')}</select><button type="button" class="verify-nft-button flex-shrink-0 w-full sm:w-auto text-stone-800 font-bold px-4 py-2 rounded-lg border-4 border-stone-800 bg-stone-200 hover:bg-stone-300 disabled:bg-stone-300/50 disabled:cursor-not-allowed">${createPool.isNftVerifying ? '...': 'Verify'}</button><div class="w-6 h-6 flex-shrink-0">${createPool.isNftVerified === true ? '✅' : createPool.isNftVerified === false ? '❌' : ''}</div></div></div>
+                            <div><label class="block text-lg font-bold text-stone-600 mb-1">Your Tokens</label><div class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2"><select name="rewardTokenAddress" required class="w-full bg-amber-50 border-4 border-stone-800 rounded-lg px-3 py-2 font-bold focus:ring-pink-500 focus:border-pink-500"><option value="" disabled ${createPool.tokenAddress === '' ? 'selected' : ''}>Select a token...</option>${MOCK_USER_OWNED_ASSETS.tokens.map(token => `<option value="${token.address}" ${createPool.tokenAddress === token.address ? 'selected' : ''}>${token.name}</option>`).join('')}</select><button type="button" class="verify-token-button flex-shrink-0 w-full sm:w-auto text-stone-800 font-bold px-4 py-2 rounded-lg border-4 border-stone-800 bg-stone-200 hover:bg-stone-300 disabled:bg-stone-300/50 disabled:cursor-not-allowed">${createPool.isTokenVerifying ? '...' : 'Verify'}</button><div class="w-6 h-6 flex-shrink-0">${createPool.isTokenVerified === true ? '✅' : createPool.isTokenVerified === false ? '❌' : ''}</div></div></div>
+                            <div><label for="emissionRate" class="block text-lg font-bold text-stone-600 mb-1">Emission Rate (Tokens per day)</label><input type="number" name="emissionRate" min="0" step="any" required class="w-full bg-amber-50 border-4 border-stone-800 rounded-lg px-3 py-2 font-bold focus:ring-pink-500 focus:border-pink-500" placeholder="e.g., 10"/></div>
+                            <div><div class="flex justify-between items-center mb-1"><label class="block text-lg font-bold text-stone-600">Pool Description</label><button type="button" class="generate-description-button flex items-center space-x-1 text-xs bg-pink-200/50 text-pink-800 px-2 py-1 rounded-md border-2 border-stone-800 hover:bg-pink-200 disabled:bg-stone-300/50 disabled:text-stone-500"><span class="text-lg">✨</span><span class="font-bold">${createPool.isGeminiLoading ? "Generating..." : "Suggest"}</span></button></div><textarea name="description" rows="3" class="w-full bg-amber-50 border-4 border-stone-800 rounded-lg px-3 py-2 font-bold focus:ring-pink-500 focus:border-pink-500" placeholder="Describe your pool to attract stakers...">${createPool.description}</textarea></div>
+                            <div class="pt-4 flex justify-end"><button type="submit" class="submit-pool-button bg-teal-400 font-bold px-6 py-3 rounded-lg border-4 border-stone-800 cartoon-shadow hover:-translate-y-1 transition-transform disabled:bg-stone-300 disabled:cursor-not-allowed">${state.isLoading ? "Processing..." : "Create Pool"}</button></div>
+                         </form>
+                    `;
+                    // Add event listeners to the new form
+                    const form = document.getElementById('create-pool-form');
+                    form.addEventListener('submit', handleCreatePool);
+                    form.querySelector('[name="startTime"]').addEventListener('change', (e) => setState({ createPool: {...state.createPool, startTime: e.target.value }}));
+                    form.querySelector('[name="endTime"]').addEventListener('change', (e) => setState({ createPool: {...state.createPool, endTime: e.target.value }}));
+                    form.querySelector('[name="nftAddress"]').addEventListener('change', (e) => setState({ createPool: {...state.createPool, nftAddress: e.target.value, isNftVerified: null }}));
+                    form.querySelector('[name="rewardTokenAddress"]').addEventListener('change', (e) => setState({ createPool: {...state.createPool, tokenAddress: e.target.value, isTokenVerified: null }}));
+                    form.querySelector('.verify-nft-button').addEventListener('click', handleVerifyNft);
+                    form.querySelector('.verify-token-button').addEventListener('click', handleVerifyToken);
+                    form.querySelector('.generate-description-button').addEventListener('click', handleGenerateDescription);
+                    form.querySelector('[name="description"]').addEventListener('input', (e) => setState({ createPool: {...state.createPool, description: e.target.value }}));
+                    form.querySelector('.submit-pool-button').disabled = state.isLoading || state.createPool.isNftVerified !== true || state.createPool.isTokenVerified !== true;
+                }
+            };
+
+            const renderPoolModal = () => {
+                const pool = MOCK_STAKING_POOLS.find(p => p.id === state.selectedPoolId);
+                if (!pool) return;
+
+                modalTitle.textContent = `Interact with ${pool.nftCollectionName} Pool`;
+                const userNftsForPool = state.userAddress ? (MOCK_USER_NFTS[pool.nftAddress] || []) : [];
+
+                modalBody.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-stone-800">
+                        <div>
+                            <h3 class="text-lg font-bold mb-4 border-b-4 border-stone-800 pb-2">Your Unstaked NFTs</h3>
+                            <div id="modal-unstaked-nfts" class="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-80 overflow-y-auto pr-2">
+                                ${userNftsForPool.length > 0 ? userNftsForPool.map(nft => `
+                                    <div class="nft-card-wrapper" data-nft-id="${nft.id}">
+                                        <!-- NFT Card will be rendered here -->
+                                    </div>
+                                `).join('') : '<p class="text-stone-500 text-center py-10 col-span-full">You have no unstaked NFTs from this collection.</p>'}
+                            </div>
+                            <button id="modal-stake-button" class="mt-6 w-full bg-teal-400 font-bold py-3 rounded-lg border-4 border-stone-800 cartoon-shadow hover:-translate-y-1 transition-transform disabled:bg-stone-300 disabled:cursor-not-allowed">
+                                Stake ${state.selectedNftsToStake.length} Selected
+                            </button>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold mb-4 border-b-4 border-stone-800 pb-2">Staked NFTs & Rewards</h3>
+                            <div class="bg-white rounded-lg p-4 mb-4 border-4 border-stone-800">
+                                <p class="text-sm text-stone-500 font-bold">Claimable Rewards</p>
+                                <p class="text-2xl font-bold text-teal-500">${pool.userRewards.toFixed(4)} $${pool.rewardToken}</p>
+                                <button id="modal-claim-button" class="mt-2 w-full text-sm bg-teal-400/50 text-teal-900 font-bold py-2 rounded-lg border-2 border-stone-800 hover:bg-teal-400/80 disabled:bg-stone-300 disabled:text-stone-500" ${pool.userRewards === 0 ? 'disabled' : ''}>Claim</button>
+                            </div>
+                            <div id="modal-staked-nfts-container">
+                                ${pool.userStaked.length > 0 ? `
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-80 overflow-y-auto pr-2">
+                                        ${pool.userStaked.map(nft => `
+                                            <div class="border-4 border-teal-500 rounded-xl overflow-hidden relative cartoon-shadow">
+                                                <div class="absolute top-1 left-1 bg-teal-500 text-white text-xs px-1.5 py-0.5 rounded-full z-10 font-bold border-2 border-stone-800">Staked</div>
+                                                <img src="${nft.image}" alt="${nft.name}" class="w-full h-32 sm:h-40 object-cover" />
+                                            </div>`).join('')}
+                                    </div>
+                                    <button id="modal-unstake-button" class="mt-4 w-full bg-red-400 font-bold py-3 rounded-lg border-4 border-stone-800 cartoon-shadow hover:-translate-y-1 transition-transform disabled:bg-stone-300">Unstake All (${pool.userStaked.length})</button>
+                                `: '<p class="text-stone-500 text-center py-10">You have not staked any NFTs in this pool yet.</p>'}
+                            </div>
+                        </div>
+                    </div>
+                    <div id="modal-analysis-container" class="mt-6"></div>
+                `;
+
+                // Render individual NFT cards and attach listeners
+                const unstakedNftContainer = modalBody.querySelector('#modal-unstaked-nfts');
+                unstakedNftContainer.querySelectorAll('.nft-card-wrapper').forEach(wrapper => {
+                    const nftId = parseInt(wrapper.dataset.nftId, 10);
+                    const nft = userNftsForPool.find(n => n.id === nftId);
+                    if (nft) {
+                        const template = document.getElementById('nft-card-template');
+                        const card = template.content.cloneNode(true).firstElementChild;
+                        card.querySelector('.nft-image').src = nft.image;
+                        card.querySelector('.nft-image').alt = nft.name;
+                        card.querySelector('.nft-name').textContent = state.generatedNftNames[nft.id] || nft.name;
+                        card.querySelector('.nft-collection').textContent = nft.collection;
+                        if (state.selectedNftsToStake.includes(nft.id)) {
+                             card.classList.add('transform', '-translate-y-1', 'scale-105', 'border-pink-500');
+                        }
+                        
+                        card.addEventListener('click', () => handleToggleNftSelection(nft.id));
+                        card.querySelector('.generate-name-button').addEventListener('click', (e) => {
+                             e.stopPropagation();
+                             handleGenerateNftName(nft.id);
+                        });
+                        wrapper.appendChild(card);
+                    }
+                });
+
+                // Attach modal action listeners
+                document.getElementById('modal-stake-button').addEventListener('click', handleStake);
+                document.getElementById('modal-claim-button').addEventListener('click', handleClaim);
+                if(pool.userStaked.length > 0) {
+                     document.getElementById('modal-unstake-button').addEventListener('click', handleUnstake);
+                }
+            };
+            
+            // --- EVENT HANDLERS ---
+            const handleConnectWallet = () => { setState({ isLoading: true }); setTimeout(() => setState({ userAddress: "0x123...45678", isLoading: false }), 1500); };
+            const handleConnectTwitter = () => { setState({ isLoading: true }); setTimeout(() => setState({ isTwitterConnected: true, twitterHandle: "@monad_staker", isLoading: false }), 1500); };
+            const handleDisconnect = () => setState({ userAddress: null, isTwitterConnected: false, twitterHandle: null, activeTab: 'dashboard' });
+            const handleSwitchTab = (tabName) => setState({ activeTab: tabName });
+            const handleFilterPools = (filterName) => setState({ dashboardFilter: filterName });
+            const handleOpenPoolModal = (poolId) => setState({ isPoolModalOpen: true, selectedPoolId: poolId, selectedNftsToStake: [] });
+            const handleClosePoolModal = () => setState({ isPoolModalOpen: false, selectedPoolId: null, generatedNftNames: {} });
+            const handleToggleNftSelection = (nftId) => {
+                const newSelection = state.selectedNftsToStake.includes(nftId)
+                    ? state.selectedNftsToStake.filter(id => id !== nftId)
+                    : [...state.selectedNftsToStake, nftId];
+                setState({ selectedNftsToStake: newSelection });
+            };
+            const handleGenerateNftName = async (nftId) => {
+                const nft = MOCK_USER_NFTS[MOCK_STAKING_POOLS.find(p=>p.id === state.selectedPoolId).nftAddress].find(n => n.id === nftId);
+                const prompt = `Generate a cool, creative name for an NFT named "${nft.name}" from the "${nft.collection}" collection.`;
+                const newName = await callGeminiAPI(prompt);
+                setState({ generatedNftNames: {...state.generatedNftNames, [nftId]: newName }});
+            };
+            const handleShare = async () => {
+                const pool = MOCK_STAKING_POOLS.find(p => p.id === state.selectedPoolId);
+                const prompt = `Generate a short, exciting tweet for ${pool.nftCollectionName} staking.`;
+                const tweetText = await callGeminiAPI(prompt);
+                const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+                window.open(twitterUrl, '_blank');
+            };
+            const handleAnalyzePool = async () => {
+                const analysisContainer = document.getElementById('modal-analysis-container');
+                if(!analysisContainer) return;
+                analysisContainer.innerHTML = `<div class="text-center font-bold p-4">🔮 جاري التحليل...</div>`;
+                const pool = MOCK_STAKING_POOLS.find(p => p.id === state.selectedPoolId);
+                const prompt = `Analyze this staking pool: ${pool.nftCollectionName}.`;
+                const analysis = await callGeminiAPI(prompt);
+                analysisContainer.innerHTML = `<div class="bg-white/50 border-4 border-stone-800 rounded-lg p-4"><p class="text-sm text-stone-700">${analysis}</p></div>`;
+            };
+            const handleVerifyNft = () => { setState({ createPool: {...state.createPool, isNftVerifying: true, isNftVerified: null}}); setTimeout(() => { setState({ createPool: {...state.createPool, isNftVerifying: false, isNftVerified: state.createPool.nftAddress === MOCK_VERIFIED_NFT_ADDRESS }})}, 1500)};
+            const handleVerifyToken = () => { setState({ createPool: {...state.createPool, isTokenVerifying: true, isTokenVerified: null}}); setTimeout(() => { setState({ createPool: {...state.createPool, isTokenVerifying: false, isTokenVerified: state.createPool.tokenAddress === MOCK_VERIFIED_TOKEN_ADDRESS }})}, 1500)};
+            const handleGenerateDescription = async () => {
+                const { nftAddress, tokenAddress } = state.createPool;
+                if (!nftAddress || !tokenAddress) {
+                    alert("Please select NFT and Token first."); return;
+                }
+                setState({ createPool: {...state.createPool, isGeminiLoading: true }});
+                const prompt = `Generate a short description for an NFT staking pool.`;
+                const desc = await callGeminiAPI(prompt);
+                setState({ createPool: {...state.createPool, isGeminiLoading: false, description: desc }});
+            };
+            const handleCreatePool = (e) => { e.preventDefault(); setState({ isLoading: true }); setTimeout(() => { alert("Pool created successfully!"); setState({ isLoading: false, activeTab: 'dashboard', createPool: {nftAddress: '', tokenAddress: '', startTime: '', endTime: '', isNftVerifying: false, isNftVerified: null, isTokenVerifying: false, isTokenVerified: null, description: '', isGeminiLoading: false} }); }, 2000)};
+            const handleStake = () => { setState({isLoading: true}); setTimeout(() => {alert("Staked!"); setState({isLoading: false, isPoolModalOpen: false})}, 1500)};
+            const handleUnstake = () => { setState({isLoading: true}); setTimeout(() => {alert("Unstaked!"); setState({isLoading: false, isPoolModalOpen: false})}, 1500)};
+            const handleClaim = () => { setState({isLoading: true}); setTimeout(() => {alert("Claimed!"); setState({isLoading: false, isPoolModalOpen: false})}, 1500)};
+
+            // --- INITIALIZATION & EVENT LISTENERS ---
+            heroConnectButton.addEventListener('click', handleConnectWallet);
+            modalCloseButton.addEventListener('click', handleClosePoolModal);
+            modalShareButton.addEventListener('click', handleShare);
+            modalAnalyzeButton.addEventListener('click', handleAnalyzePool);
+            tabButtons.forEach(btn => btn.addEventListener('click', () => handleSwitchTab(btn.dataset.tab)));
+            filterButtons.forEach(btn => btn.addEventListener('click', () => handleFilterPools(btn.dataset.filter)));
+            
+            // Timer to update countdowns
+            setInterval(() => {
+                setState({ currentTime: new Date().getTime() });
+            }, 1000);
+
+            // Initial Render
+            render();
+        });
+    </script>
+</body>
+</html>
+
